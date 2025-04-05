@@ -1,36 +1,30 @@
 public class AdaptiveHuffman {
-    private String input;
-    private String encodedString;
-    private String decodedString;
     private Tree tree;
+    private Encoder encoder;
+    private Decoder decoder;
 
-    public AdaptiveHuffman(String input) {
+    public AdaptiveHuffman() {
         this.tree = new Tree();
+        this.encoder = new Encoder(tree);
+        this.decoder = new Decoder(tree);
     }
 
-    public void updateTree(String symbol) {
-        Node node = tree.getNode(symbol);
-        if (node == null) { // if the symbol is not in the tree
-            oldNYT  = tree.getCurrentNTY(); // get the current NYT node before we split, as we will move from it after the split
-            oldNYT.setSymbolCount(oldNYT.getSymbolCount() + 1); // update the symbol count of the old NYT node
-            // increment the counter of the nyt
-            tree.split(symbol);
-            tree.updateSymbolCount(symbol);
-            // now get back to the old NYT node, and see if it is a root, if so, return, but if not, go to parent and search for swap conditions
-            if (oldNYT.isRoot()) {
-                return;
-            } else {
-                Node parent = oldNYT.getParent();
-                while (parent != null) {
-
-                }
-            }
-        } else { // if the symbol is in the tree
-            // go to the node, see swap conditions, swap if needed, then in both cases increment the counter of the counter of the symbol node
-            // see if now this is a root, if so, return, but if not, go to parent and search for swap conditions
-        }
-        tree.updateNodeCodes(tree.getRoot());
+    public String encode(String input) { // encode the input string
+        return encoder.encode(input);
     }
 
+    public String decode(String encoded) { // decode the encoded string
+        this.tree = new Tree(); // reset the tree for decoding
+        this.decoder = new Decoder(tree);
+        return decoder.decode(encoded);
+    }
+
+    public String getStringCompression() { // get the compression trace
+        return encoder.getStringCompression();
+    }
+
+    public Tree getTree() { // get the tree for visualization
+        return tree;
+    }
 
 }

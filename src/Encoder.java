@@ -9,31 +9,38 @@ public class Encoder {
         this.stringCompression = "";
     }
 
-    public String encode(char input) {
+    public String encode(String input) { // encode an entire string
         encodedString = ""; // reset for new encoding
         stringCompression = ""; // reset for new encoding
-        String symbol = String.valueOf(input);
-        Node symbolNode = tree.getNode(symbol);
-        if (symbolNode == null) { // if the symbol is not in the tree
-            // send the nyt code, and the symbol short code
-            String nytCode = tree.getCurrentNTY().getNodeBinCode();
-            String shortCode = getShortCode(input);
-            encodedString += nytCode + shortCode; // add to final compressed data
-            stringCompression += "{ NYT:" + nytCode + "SymbASC:" + shortCode + " }"; // to trace
-//        tree.split(symbol);
-//        symbolNode = tree.getNode(symbol);
+        for (char letter : input.toCharArray()) {
+            String symbol = String.valueOf(letter);
+            Node symbolNode = tree.getNode(symbol);
+            if (symbolNode == null) { // if the symbol is not in the tree
+                // send the nyt code, and the symbol short code
+                String nytCode = tree.getCurrentNTY().getNodeBinCode();
+                String shortCode = getShortCode(symbol);
+                encodedString += nytCode + shortCode; // add to final compressed data
+                stringCompression += "{ #newLetter# [ NYT:" + nytCode + " SymbASC:" + shortCode + "] }"; // to trace
+                tree.split(symbol); // split the current nyt to two nodes
+                symbolNode = tree.getNode(symbol); // get the new symbol node after split
+            } else { // if the symbol is in the tree
+                String symbolCode = symbolNode.getNodeBinCode(); // get the binary code according to its position now
+                encodedString += symbolCode; // add to final compressed data
+                stringCompression += "{ #old letter# [" + symbolCode + "]";
 
-        /* need to make a function for the tree algorithm, as a blackbox to use in both the conditions here */
-        } else { // if the symbol is in the tree
-            String huffmanCode = symbolNode.getNodeBinCode();
-            encodedString += huffmanCode; // add to final compressed data
+            }
+            tree.update(symbolNode); // update the tree algorithm itself
         }
-        tree.update(symbolNode); // update the tree algorithm itself
         return encodedString;
     }
 
-    private String getShortCode(char symbol) { // get ascii code of the symbol but as binary
-        return String.format("%8s", Integer.toBinaryString(symbol)).replace(' ', '0');
+    private void encodeChar(char input) { // encode a single character
+
+    }
+
+    private String getShortCode(String symbol) { // get ascii code of the symbol but as binary
+        char c = symbol.charAt(0);
+        return String.format("%8s", Integer.toBinaryString(c)).replace(' ', '0');
     }
 
     public String getStringCompression() {
@@ -43,27 +50,4 @@ public class Encoder {
     public String getEncodedString() {
         return encodedString;
     }
-
 }
-    // map is used to get  the short code of the symbols to use in case of first time
-
-//    public void encode() {
-//        for (char c : input.toCharArray()) {
-//            String symbol = String.valueOf(c);
-//            if (tree.getNode(symbol) == null) { // if the symbol is not in the tree
-//                // send the nyt code, and the symbol short code
-////                tree.split(symbol, tree.getCurrentNTY());
-//                encodedString += tree.getCurrentNTY(); // add the nyt code
-//                encodedString += symbolsShortCode.get(symbol); // add the symbol short code
-//                updateTree(symbol); // update the tree algorithm
-//            } else { // if the symbol is in the tree
-//                encodedString += tree.getNode(symbol).getNodeBinCode();
-//            }
-//            tree.updateSymbolCount(symbol);
-//        }
-//        System.out.println(encodedString); // binary string
-//    }
-//
-//
-//
-
