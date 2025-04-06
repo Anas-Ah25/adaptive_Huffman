@@ -1,74 +1,82 @@
-//import java.io.BufferedReader;
-//import java.io.FileReader;
-//import java.io.IOException;
-//import java.util.Scanner;
-//
-//
-//public class Main {
-//
-//
-//
-//
-//    /* ====================== Read text from files function ======================= */
-//    public String readFile(String path) {
-//        StringBuilder content = new StringBuilder();
-//        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
-//            String line;
-//            while ((line = br.readLine()) != null) {
-//                content.append(line).append("\n");
-//            }
-//        } catch (IOException e) {
-//            System.err.println("cant' read file:" + e);
-//        }
-//        return content.toString();
-//    }
-//    // write to file
-//    public
-//
-//    /* ====================== Main function ======================= */
-//
-//    public static void main(String[] args) {
-//        String pathBase = "src/";
-//        String fileName;
-//        addaptiveHuffman huffman = new adaptiveHuffman();
-//        while (true) {
-//            System.out.println("1. Encode");
-//            System.out.println("2. Decode");
-//            System.out.println("3. Exit");
-//            System.out.print("Enter your choice: ");
-//            Scanner scanner = new Scanner(System.in);
-//            int choice = scanner.nextInt();
-//            switch (choice) {
-//                case 1:
-//                    // take file name from user
-//                    System.out.print("Enter the file name to encode: ");
-//                    Scanner scanner1 = new Scanner(System.in);
-//                    fileName = scanner1.nextLine();
-//                    // read file
-//                    String content = readFile(pathBase + fileName);
-//                    // Call encode function
-//                    String encoded = huffman.encode(content);
-//                    System.out.println("Encoded String: " + encoded);
-//                    System.out.println("Compression Trace: " + huffman.getStringCompression());
-//                    // write to file
-//                    String encodedFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_compressed.txt";
-//                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(pathBase + encodedFileName))) {
-//                        writer.write(encoded);
-//                    } catch (IOException e) {
-//                        System.err.println("Error writing to file: " + e);
-//                    }
-//
-//
-//                case 2:
-//                    // Call decode function
-//                    break;
-//                case 3:
-//                    System.exit(0);
-//                    break;
-//                default:
-//                    System.out.println("Invalid choice. Please try again.");
-//            }
-//
-//        }
-//    }
-//}
+import java.nio.file.*;
+import java.io.*;
+import java.util.Scanner;
+
+public class Main {
+    public static String readFile(String path){
+        try {
+            return new String(Files.readAllBytes(Paths.get(path)));
+        } catch (IOException e) {
+            System.err.println("Can't read file: " + e);
+            return "";
+        }
+    }
+
+
+    public static void writeFile(String path, String content) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
+            writer.write(content);
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e);
+        }
+    }
+
+    public static void main(String[] args) {
+        String pathBase = "src/";
+        String fileName;
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("1. Encode");
+            System.out.println("2. Decode");
+            System.out.println("3. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("Enter the file name to encode: ");
+                    fileName = scanner.nextLine();
+                    String content = readFile(pathBase + fileName);
+                    if (content.isEmpty()) {
+                        System.out.println("No content to encode.");
+                        break;
+                    }
+                    AdaptiveHuffman huffman = new AdaptiveHuffman();
+                    String encoded = huffman.encode(content);
+                    System.out.println("Encoded String: " + encoded);
+                    System.out.println("Compression Trace: " + huffman.getStringCompression());
+                    String encodedFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_compressed.txt";
+                    writeFile(pathBase + encodedFileName, encoded);
+                    System.out.println("Encoded content written to: " + encodedFileName);
+                    break;
+
+                case 2:
+                    System.out.print("Enter the file name to decode: ");
+                    fileName = scanner.nextLine();
+                    String encodedContent = readFile(pathBase + fileName);
+                    if (encodedContent.isEmpty()) {
+                        System.out.println("No content to decode.");
+                        break;
+                    }
+                    huffman = new AdaptiveHuffman();
+                    String decoded = huffman.decode(encodedContent);
+                    System.out.println("Decoded String: " + decoded);
+                    String decodedFileName = fileName.substring(0, fileName.lastIndexOf('_')) + "_decompressed.txt";
+                    writeFile(pathBase + decodedFileName, decoded);
+                    System.out.println("Decoded content written to: " + decodedFileName);
+                    break;
+
+                case 3:
+                    System.out.println("Exiting...");
+                    scanner.close();
+                    System.exit(0);
+                    break;
+
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+}

@@ -15,6 +15,7 @@ public class Encoder {
         for (char letter : input.toCharArray()) {
             String symbol = String.valueOf(letter);
             Node symbolNode = tree.getNode(symbol);
+            boolean isNewSymbol = false;
             if (symbolNode == null) { // if the symbol is not in the tree
                 // send the nyt code, and the symbol short code
                 String nytCode = tree.getCurrentNTY().getNodeBinCode();
@@ -23,13 +24,13 @@ public class Encoder {
                 stringCompression += "{ #newLetter# [ NYT:" + nytCode + " SymbASC:" + shortCode + "] }"; // to trace
                 tree.split(symbol); // split the current nyt to two nodes
                 symbolNode = tree.getNode(symbol); // get the new symbol node after split
+                isNewSymbol = true;
             } else { // if the symbol is in the tree
                 String symbolCode = symbolNode.getNodeBinCode(); // get the binary code according to its position now
                 encodedString += symbolCode; // add to final compressed data
-                stringCompression += "{ #old letter# [" + symbolCode + "]";
-
+                stringCompression += "{ #old letter# [" + symbolCode + "] }"; // Fixed closing bracket
             }
-            tree.update(symbolNode); // update the tree algorithm itself
+            tree.update(symbolNode, isNewSymbol); // update the tree algorithm itself, pass whether the symbol is new
         }
         return encodedString;
     }

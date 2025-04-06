@@ -27,5 +27,7 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="library" exported="" scope="TEST" name="junit" level="project" />
+    <orderEntry type="library" name="junit" level="project" />
   </component>
 </module>

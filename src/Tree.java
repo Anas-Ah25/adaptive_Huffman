@@ -68,7 +68,7 @@ public class Tree {
         symbolNode.updateBinaryCode();
     }
 
-    public void update(Node node) { // algorithm after initial conditions
+    public void update(Node node, boolean isNewSymbol) { // algorithm after initial conditions
         boolean isFirstNode = true; // skip increment for new symbol node
         while (node != null) {
             // swap and increment
@@ -76,22 +76,27 @@ public class Tree {
             if (nodeToSwap != null) {
                 swap(node, nodeToSwap);
             }
-            if (!isFirstNode) { // skip increment for the first node (already set in split)
-                node.setSymbolCount(node.getSymbolCount()+1); // increment the counter
+            if (!isFirstNode || !isNewSymbol) { // Increment unless it's the first node AND a new symbol
+                node.setSymbolCount(node.getSymbolCount() + 1); // increment the counter
             }
             if (!node.isLeaf()) {
                 int childrenSum = 0;
-                if (node.getLeft()!=null) {
+                if (node.getLeft() != null) {
                     childrenSum += node.getLeft().getSymbolCount();
                 }
                 if (node.getRight() != null) {
                     childrenSum += node.getRight().getSymbolCount();
                 }
-                node.setSymbolCount(childrenSum); // update internal node count but to the summ of its childs not by incrementing manually
+                node.setSymbolCount(childrenSum); // update internal node count to the sum of its children
             }
             node = node.getParent();
             isFirstNode = false;
         }
+    }
+
+    // Add this to maintain compatibility with Decoder
+    public void update(Node node) {
+        update(node, false); // Default to not a new symbol
     }
 
     public void swap(Node node1, Node node2) {
