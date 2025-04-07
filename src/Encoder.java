@@ -1,7 +1,7 @@
 public class Encoder {
     private Tree tree;
-    private String encodedString; // final compressed data in binary
-    private String stringCompression; // sting with the Nyt and ascii codes of the compressed string process
+    private String encodedString;
+    private String stringCompression;
 
     public Encoder(Tree tree) {
         this.tree = tree;
@@ -9,37 +9,34 @@ public class Encoder {
         this.stringCompression = "";
     }
 
-    public String encode(String input) { // encode an entire string
-        encodedString = ""; // reset for new encoding
-        stringCompression = ""; // reset for new encoding
+    public String encode(String input) {
+        encodedString = "";
+        stringCompression = "";
+
         for (char letter : input.toCharArray()) {
             String symbol = String.valueOf(letter);
             Node symbolNode = tree.getNode(symbol);
             boolean isNewSymbol = false;
-            if (symbolNode == null) { // if the symbol is not in the tree
-                // send the nyt code, and the symbol short code
+            if (symbolNode == null) {
                 String nytCode = tree.getCurrentNTY().getNodeBinCode();
                 String shortCode = getShortCode(symbol);
-                encodedString += nytCode + shortCode; // add to final compressed data
-                stringCompression += "{ #newLetter# [ NYT:" + nytCode + " SymbASC:" + shortCode + "] }"; // to trace
-                tree.split(symbol); // split the current nyt to two nodes
-                symbolNode = tree.getNode(symbol); // get the new symbol node after split
+                encodedString += (nytCode + shortCode);
+                stringCompression += "{#newLetter# [NYT:" + nytCode + " ASC:" + shortCode + "]}";
+
+                tree.split(symbol);
+                symbolNode = tree.getNode(symbol);
                 isNewSymbol = true;
-            } else { // if the symbol is in the tree
-                String symbolCode = symbolNode.getNodeBinCode(); // get the binary code according to its position now
-                encodedString += symbolCode; // add to final compressed data
-                stringCompression += "{ #old letter# [" + symbolCode + "] }"; // Fixed closing bracket
+            } else {
+                String code = symbolNode.getNodeBinCode();
+                encodedString += code;
+                stringCompression += "{#oldLetter# [" + code + "]}";
             }
-            tree.update(symbolNode, isNewSymbol); // update the tree algorithm itself, pass whether the symbol is new
+            tree.update(symbolNode, isNewSymbol);
         }
         return encodedString;
     }
 
-    private void encodeChar(char input) { // encode a single character
-
-    }
-
-    private String getShortCode(String symbol) { // get ascii code of the symbol but as binary
+    private String getShortCode(String symbol) {
         char c = symbol.charAt(0);
         return String.format("%8s", Integer.toBinaryString(c)).replace(' ', '0');
     }

@@ -9,22 +9,22 @@ public class AdaptiveHuffman {
         this.decoder = new Decoder(tree);
     }
 
-    public String encode(String input) { // encode the input string
+    public String encode(String input) {
         return encoder.encode(input);
     }
 
-    public String decode(String encoded) { // decode the encoded string
-        this.tree = new Tree(); // reset the tree for decoding
+    public String decode(String encoded) {
+        // Reset the tree for each decode so we start fresh
+        this.tree = new Tree();
         this.decoder = new Decoder(tree);
         return decoder.decode(encoded);
     }
 
-    public String getStringCompression() { // get the compression trace
-        return encoder.getStringCompression();
-    }
-
-    public Tree getTree() { // get the tree for visualization
+    public Tree getTree() {
         return tree;
     }
 
+    public String getStringCompression() {
+        return encoder.getStringCompression();
+    }
 }

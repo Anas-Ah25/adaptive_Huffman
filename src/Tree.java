@@ -1,12 +1,12 @@
 public class Tree {
     private Node root;
     private Node nytNode;
-    private int NodePosition; // number of the root node
+    private int NodePosition; // numbering from ~100 down
 
     public Tree() {
-        this.NodePosition = 100;
-        this.root = new Node("NYT", NodePosition--);
-        this.nytNode = root;
+        NodePosition = 100;
+        root = new Node("NYT", NodePosition--);
+        nytNode = root;
     }
 
     public Node getRoot() {
@@ -17,177 +17,187 @@ public class Tree {
         return nytNode;
     }
 
-    private Node nodeSearch(Node node, String symbol) { // search for a node with the given symbol
-        if (node == null) {
-            return null;
-        }
-        if (node.getSymbol() != null && node.getSymbol().equals(symbol)) {
-            return node;
-        }
-        Node leftResult = nodeSearch(node.getLeft(), symbol);
-        if (leftResult != null) {
-            return leftResult;
-        }
-        return nodeSearch(node.getRight(), symbol);
-    }
-
     public Node getNode(String symbol) {
-        return nodeSearch(root, symbol);
+        return findNode(root, symbol);
     }
 
-    public void updateNodeCodes(Node node) {
-        if (node == null) {
-            return;
-        }
-        node.updateBinaryCode();
-        updateNodeCodes(node.getLeft());
-        updateNodeCodes(node.getRight());
+    private Node findNode(Node node, String symbol) {
+        if (node == null) return null;
+        if (symbol.equals(node.getSymbol())) return node;
+        Node left = findNode(node.getLeft(), symbol);
+        if (left != null) return left;
+        return findNode(node.getRight(), symbol);
     }
 
+    // =============== SPLIT ===============
     public void split(String symbol) {
         if (root == null) {
             root = new Node("NYT", NodePosition--);
             nytNode = root;
         }
-
         Node oldNyt = nytNode;
         Node newNyt = new Node("NYT", NodePosition--);
-        newNyt.setSymbolCount(0); // NYT starts with count 0
-        Node symbolNode = new Node(symbol, NodePosition--);
-        symbolNode.setSymbolCount(1); // new symbol starts with count 1
+        newNyt.setSymbolCount(0);
+
+        Node symNode = new Node(symbol, NodePosition--);
+        symNode.setSymbolCount(1);
 
         oldNyt.setLeft(newNyt);
-        oldNyt.setRight(symbolNode);
+        oldNyt.setRight(symNode);
         newNyt.setParent(oldNyt);
-        symbolNode.setParent(oldNyt);
-        oldNyt.setSymbol(null); // old NYT becomes an internal node
-        oldNyt.setSymbolCount(1); // old NYT (now internal) gets count 1
-        nytNode = newNyt;
+        symNode.setParent(oldNyt);
 
+        // oldNyt now internal
+        oldNyt.setSymbol(null);
+        oldNyt.setSymbolCount(1);
+
+        nytNode = newNyt;
         newNyt.updateBinaryCode();
-        symbolNode.updateBinaryCode();
+        symNode.updateBinaryCode();
+
+        // Record a SPLIT snapshot
+        recordEventSnapshot(
+                SnapshotEvent.Type.SPLIT,
+                oldNyt.getSymbol() == null ? "INT" : oldNyt.getSymbol(),
+                null
+        );
     }
 
-    public void update(Node node, boolean isNewSymbol) { // algorithm after initial conditions
-        boolean isFirstNode = true; // skip increment for new symbol node
+    // =============== UPDATE (counter increments) ===============
+    public void update(Node node, boolean isNewSymbol) {
+        boolean first = true;
         while (node != null) {
-            // swap and increment
             Node nodeToSwap = swapWithW(node);
             if (nodeToSwap != null) {
                 swap(node, nodeToSwap);
             }
-            if (!isFirstNode || !isNewSymbol) { // Increment unless it's the first node AND a new symbol
-                node.setSymbolCount(node.getSymbolCount() + 1); // increment the counter
+            if (!first || !isNewSymbol) {
+                node.setSymbolCount(node.getSymbolCount() + 1);
+                // record a COUNTER snapshot
+                recordEventSnapshot(
+                        SnapshotEvent.Type.COUNTER,
+                        (node.getSymbol() == null || node.getSymbol().isEmpty()) ? "INT" : node.getSymbol(),
+                        null
+                );
             }
             if (!node.isLeaf()) {
-                int childrenSum = 0;
-                if (node.getLeft() != null) {
-                    childrenSum += node.getLeft().getSymbolCount();
-                }
-                if (node.getRight() != null) {
-                    childrenSum += node.getRight().getSymbolCount();
-                }
-                node.setSymbolCount(childrenSum); // update internal node count to the sum of its children
+                int sum = 0;
+                if (node.getLeft() != null) sum += node.getLeft().getSymbolCount();
+                if (node.getRight() != null) sum += node.getRight().getSymbolCount();
+                node.setSymbolCount(sum);
             }
             node = node.getParent();
-            isFirstNode = false;
+            first = false;
         }
     }
-
-    // Add this to maintain compatibility with Decoder
     public void update(Node node) {
-        update(node, false); // Default to not a new symbol
+        update(node, false);
     }
 
-    public void swap(Node node1, Node node2) {
-        if (node1==null || node2==null || node1==node2) {
-            return;
-        }
-        if (node1.getParent() == node2 || node2.getParent() == node1){
-            return;
-        }
+    // =============== SWAP ===============
+    public void swap(Node n1, Node n2) {
+        if (n1 == null || n2 == null || n1 == n2) return;
+        if (n1.getParent() == n2 || n2.getParent() == n1) return;
 
-        Node parent1 = node1.getParent();
-        Node parent2 = node2.getParent();
-        boolean isNode1Left = parent1 != null && parent1.getLeft() == node1;
-        boolean isNode2Left = parent2 != null && parent2.getLeft() == node2;
+        Node p1 = n1.getParent();
+        Node p2 = n2.getParent();
+        boolean n1Left = (p1 != null && p1.getLeft() == n1);
+        boolean n2Left = (p2 != null && p2.getLeft() == n2);
 
-        if (parent1 != null) {
-            if (isNode1Left){
-                parent1.setLeft(node2);
-            }
-            else{
-                parent1.setRight(node2);
-            }
+        // re-wire
+        if (p1 == null) {
+            root = n2;
         } else {
-            root = node2;
+            if (n1Left) p1.setLeft(n2); else p1.setRight(n2);
         }
-
-        if (parent2 != null) {
-            if (isNode2Left){
-                parent2.setLeft(node1);
-            }
-            else {
-
-                parent2.setRight(node1);
-            }
+        if (p2 == null) {
+            root = n1;
         } else {
-            root = node1;
+            if (n2Left) p2.setLeft(n1); else p2.setRight(n1);
         }
+        n1.setParent(p2);
+        n2.setParent(p1);
 
-        node1.setParent(parent2);
-        node2.setParent(parent1);
+        // swap nodeNumber
+        int tmp = n1.getNodeNumber();
+        n1.setNodeNumber(n2.getNodeNumber());
+        n2.setNodeNumber(tmp);
 
-        int temp = node1.getNodeNumber();
-        node1.setNodeNumber(node2.getNodeNumber());
-        node2.setNodeNumber(temp);
+        updateNodeCodes(n1);
+        updateNodeCodes(n2);
 
-        updateNodeCodes(node1);
-        updateNodeCodes(node2);
+        // record SWAP snapshot with both symbols
+        String s1 = (n1.getSymbol() == null || n1.getSymbol().isEmpty()) ? "INT" : n1.getSymbol();
+        String s2 = (n2.getSymbol() == null || n2.getSymbol().isEmpty()) ? "INT" : n2.getSymbol();
+        recordEventSnapshot(SnapshotEvent.Type.SWAP, s1, s2);
     }
 
-    public Node swapWithW(Node node) { // search for the suitable node to swap
-        int weight = node.getSymbolCount();
-        Node secNode = BestNode(root,weight,node, node.getNodeNumber());
-        return secNode;
+    public Node swapWithW(Node node) {
+        int w = node.getSymbolCount();
+        return findSwapCandidate(root, w, node, node.getNodeNumber());
     }
 
-    private Node BestNode(Node current, int targetWeight, Node excludeNode, int maxNodeNumber) {
-        if (current == null) {
-            return null;
-        }
-
-        Node secNode = null;
-        // Check the current node
-        if (current.getSymbolCount() == targetWeight && current != excludeNode && !isUpper(current, excludeNode)) {
-            if (current.getNodeNumber() > maxNodeNumber) {
-                maxNodeNumber = current.getNodeNumber();
-                secNode = current;
-
+    private Node findSwapCandidate(Node cur, int weight, Node exclude, int maxNumber) {
+        if (cur == null) return null;
+        Node best = null;
+        if (cur != exclude && cur.getSymbolCount() == weight && !isAncestor(cur, exclude)) {
+            if (cur.getNodeNumber() > maxNumber) {
+                best = cur;
+                maxNumber = cur.getNodeNumber();
             }
         }
-
-        // Recursively search left and right subtrees
-        Node leftBestN = BestNode(current.getLeft(), targetWeight, excludeNode, maxNodeNumber);
-        if (leftBestN != null && (secNode == null || leftBestN.getNodeNumber() > secNode.getNodeNumber())) {
-            secNode = leftBestN;
-            maxNodeNumber = secNode.getNodeNumber();
+        Node left = findSwapCandidate(cur.getLeft(), weight, exclude, maxNumber);
+        if (left != null && (best == null || left.getNodeNumber() > best.getNodeNumber())) {
+            best = left;
+            maxNumber = best.getNodeNumber();
         }
-
-        Node rightBestN = BestNode(current.getRight(), targetWeight, excludeNode, maxNodeNumber);
-        if (rightBestN != null && (secNode == null || rightBestN.getNodeNumber() > secNode.getNodeNumber())) {
-            secNode = rightBestN;
+        Node right = findSwapCandidate(cur.getRight(), weight, exclude, maxNumber);
+        if (right != null && (best == null || right.getNodeNumber() > best.getNodeNumber())) {
+            best = right;
         }
-
-        return secNode;
+        return best;
     }
 
-    private boolean isUpper(Node ancestor, Node descendant) {
-        Node current = descendant;
-        while (current != null) {
-            if (current == ancestor) return true;
-            current = current.getParent();
+    private boolean isAncestor(Node anc, Node desc) {
+        while (desc != null) {
+            if (desc == anc) return true;
+            desc = desc.getParent();
         }
         return false;
+    }
+
+    public void updateNodeCodes(Node node) {
+        if (node == null) return;
+        node.updateBinaryCode();
+        updateNodeCodes(node.getLeft());
+        updateNodeCodes(node.getRight());
+    }
+
+    // =============== HELPER: record snapshot after an event ===============
+    private void recordEventSnapshot(SnapshotEvent.Type type, String node1Symbol, String node2Symbol) {
+        TreeSnapshot snap = createSnapshot();
+        SnapshotEvent evt;
+        if (type == SnapshotEvent.Type.SWAP) {
+            evt = new SnapshotEvent(type, snap, node1Symbol, node2Symbol);
+        } else {
+            evt = new SnapshotEvent(type, snap, node1Symbol);
+        }
+        SnapshotRecorder.record(evt);
+    }
+
+    // =============== CREATE SNAPSHOT ===============
+    public TreeSnapshot createSnapshot() {
+        NodeSnapshot rootSnap = copyNode(root);
+        return new TreeSnapshot(rootSnap);
+    }
+
+    private NodeSnapshot copyNode(Node node) {
+        if (node == null) return null;
+        String sym = (node.getSymbol() == null) ? "" : node.getSymbol();
+        String code = (node.getNodeBinCode() == null) ? "" : node.getNodeBinCode();
+        NodeSnapshot ns = new NodeSnapshot(sym, node.getSymbolCount(), code, node.getNodeNumber());
+        ns.left = copyNode(node.getLeft());
+        ns.right = copyNode(node.getRight());
+        return ns;
     }
 }
